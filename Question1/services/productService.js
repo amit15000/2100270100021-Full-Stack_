@@ -1,60 +1,44 @@
-const axios = require("axios");
-const authService = require("./authService");
-require("dotenv").config();
+const { apiClient, authenticate } = require("../utils/apiClient");
 
-const productService = {
-  getProducts: async (
-    company,
-    category,
-    top,
-    minPrice,
-    maxPrice,
-    page,
-    sort,
-    order
-  ) => {
-    const token = await authService.getAuthToken();
-    const config = {
-      headers: { Authorization: `Bearer ${token}` },
+let token = "";
+
+const getAuthToken = async () => {
+  if (!token) {
+    token = await authenticate();
+    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  }
+};
+
+const getProducts = async (
+  companyName,
+  categoryName,
+  top,
+  minPrice,
+  maxPrice
+) => {
+  await getAuthToken();
+  const response = await apiClient.get(
+    `/${companyName}/categories/${categoryName}/products`,
+    {
       params: {
         top,
         minPrice,
         maxPrice,
-        page,
-        sort,
-        order,
       },
-    };
-
-    try {
-      const response = await axios.get(
-        `${process.env.PRODUCTS_API_URL}/${company}/categories/${category}/products`,
-        config
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      throw error;
     }
-  },
-
-  getProductDetails: async (company, category, productId) => {
-    const token = await authService.getAuthToken();
-    const config = {
-      headers: { Authorization: `Bearer ${token}` },
-    };
-
-    try {
-      const response = await axios.get(
-        `${process.env.PRODUCTS_API_URL}/${company}/categories/${category}/products/${productId}`,
-        config
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching product details:", error);
-      throw error;
-    }
-  },
+  );
+  return response.data;
 };
 
-module.exports = productService;
+const getProductById = async (companyName, categoryName, productId) => {
+  await getAuthToken();
+  const response = await apiClient.get(
+    `/${companyName}/categories/${categoryName}/products/${productId}`
+  );
+  return response.data;
+};
+
+module.exports = {
+  getProducts,
+  getProductById,
+};
